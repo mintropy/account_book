@@ -12,3 +12,5 @@ class AccountBook(models.Model):
     date = models.DateField()
     amount = models.IntegerField()
     memo = models.CharField(max_length=100, blank=True, null=True)
+    external_url = models.UUIDField(null=True, blank=True)
+    external_url_expire = models.DateTimeField(null=True, blank=True)

@@ -1,3 +1,5 @@
+from django.shortcuts import get_object_or_404
+
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
@@ -7,6 +9,7 @@ from account_books.serializers import AccountBookSerializer
 from users.models import User
 
 import datetime
+import uuid
 
 
 class AccountBookViewSet(ViewSet):
@@ -80,3 +83,36 @@ class AccountBookViewSet(ViewSet):
         account_book = AccountBook.objects.filter(id=account_book_id)[0]
         account_book.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def share(self, request, account_book_id):
+        user = get_object_or_404(User, username=request.user.username)
+        account_book = get_object_or_404(AccountBook, id=account_book_id, user=user.id)
+        url_id = uuid.uuid4()
+        expire_date = datetime.datetime.now() + datetime.timedelta(hours=3)
+        data = {
+            **account_book.__dict__,
+            "user": user.id,
+            "external_url": url_id,
+            "external_url_expire": expire_date,
+        }
+        serializer = AccountBookSerializer(account_book, data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                data=serializer.data,
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(
+            data=serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    def get_share(self, request, external_url):
+        account_book = get_object_or_404(AccountBook, external_url=external_url)
+        expire_date = account_book.external_url_expire.replace(
+            tzinfo=datetime.timezone.utc
+        )
+        if expire_date < datetime.datetime.now(tz=datetime.timezone.utc):
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        serializer = AccountBookSerializer(account_book)
+        return Response(serializer.data, status=status.HTTP_200_OK)
