@@ -46,6 +46,14 @@ class AccountBookViewSet(ViewSet):
         serializer = AccountBookSerializer(account_books, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def detail(self, request, account_book_id):
+        user = User.objects.get(username=request.user.username)
+        account_book = AccountBook.objects.filter(id=account_book_id)[0]
+        if account_book.user != user.id:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        serializer = AccountBookSerializer(account_book)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     def update(self, request, account_book_id):
         account_book = AccountBook.objects.filter(id=account_book_id)[0]
         user = User.objects.get(username=request.user.username)
