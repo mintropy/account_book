@@ -3,7 +3,7 @@ from users.models import User
 
 # Create your models here.
 class AccountBook(models.Model):
-    id = models.IntegerField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     user = models.ForeignKey(
         User,
         related_name="account_details",
@@ -11,4 +11,4 @@ class AccountBook(models.Model):
     )
     date = models.DateField()
     amount = models.IntegerField()
-    memo = models.CharField(max_length=100)
+    memo = models.CharField(max_length=100, blank=True, null=True)
