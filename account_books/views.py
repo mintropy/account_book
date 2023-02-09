@@ -20,7 +20,7 @@ class AccountBookViewSet(ViewSet):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         user = User.objects.get(username=username)
         date = request.data.get("date", None)
-        amount = request.data.get("amount", None)
+        amount = request.data.get("amount", 0)
         memo = request.data.get("memo", None)
         if date is None:
             today = datetime.date.today()
@@ -38,4 +38,37 @@ class AccountBookViewSet(ViewSet):
                 data=serializer.data,
                 status=status.HTTP_201_CREATED,
             )
-        return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    def list(self, request):
+        user = User.objects.get(username=request.user.username)
+        account_books = AccountBook.objects.filter(user=user.id)
+        serializer = AccountBookSerializer(account_books, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def update(self, request, account_book_id):
+        account_book = AccountBook.objects.filter(id=account_book_id)[0]
+        user = User.objects.get(username=request.user.username)
+        if account_book.user != user:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        amount = request.data.get("amount", None)
+        memo = request.data.get("memo", None)
+        data = {
+            "user": user.id,
+            "date": account_book.date,
+            "amount": amount if amount is not None else account_book.amount,
+            "memo": memo if memo is not None else account_book.memo,
+        }
+        serializer = AccountBookSerializer(account_book, data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                data=serializer.data,
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(dstatus=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, account_book_id):
+        account_book = AccountBook.objects.filter(id=account_book_id)[0]
+        account_book.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
